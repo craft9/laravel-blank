@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="laravel" default="build">
+    <target name="build">
+        <copy todir="${build.path.site}" overwrite="true">
+            <fileset dir="${profiles.path.target}/site">
+                <include name="**/*"/>
+            </fileset>
+        </copy>
+    </target>
+</project>

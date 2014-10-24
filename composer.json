@@ -1,0 +1,14 @@
+{
+	"name": "craft9/your-project",
+
+	"repositories": [
+	],
+	"require": {
+		"php": ">=5.4",
+		"composer/installers": "*",
+		"phing/phing": "2.*",
+		"phpunit/phpunit": "4.*",
+		"laravel/installer": "~1.1"
+	}
+}
+

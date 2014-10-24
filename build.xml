@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="laravel" default="build">
+    <property name="base.path" value="${project.basedir}"/>
+    <property name="build.target" value="local" override="false"/>
+    <property name="build.path" value="${project.basedir}/build"/>
+    <property name="build.path.site" value="${build.path}/site"/>
+    <property name="vendor.path" value="${project.basedir}/vendor"/>
+    <property name="site.path" value="${project.basedir}/site"/>
+    <property name="profiles.path" value="${project.basedir}/profiles"/>
+    <property name="profiles.path.target" value="${profiles.path}/${build.target}"/>
+
+    <!--
+    // 初期化
+    //-->
+    <target name="init">
+        <if>
+            <available file="${profiles.path}/build.properties"/>
+            <then><property file="${profiles.path}/build.properties"/></then>
+        </if>
+        <if>
+          <available file="${profiles.path.target}/build.properties"/>
+          <then><property file="${profiles.path.target}/build.properties" override="true"/></then>
+        </if>
+        <mkdir dir="${build.path}"/>
+        <echo message="========================================"/>
+        <echo message=" build ${project.id}"/>
+        <echo message=" build target:${build.target}"/>
+        <echo message="========================================"/>
+    </target>
+
+    <!--
+    //  クリーン
+    //-->
+    <target name="clean" depends="init">
+        <echo message="Cleaning Build files..."/>
+        <if>
+          <available file="${build.path.site}"/>
+          <then>
+            <delete dir="${build.path.site}"/>
+          </then>
+        </if>
+    </target>
+
+    <!--
+    // 全てのビルドを実行する。
+    //-->
+    <target name="build" depends="init">
+        <if>
+            <not><available file="${build.path.site}"/></not>
+            <then><exec command="${vendor.path}/bin/laravel new build/site" passthru="true"/></then>
+        </if>
+        <if>
+            <not><available file="${build.path.site}/composer.phar"/></not>
+            <then>
+                <echo message="Copying composer.phar..."/>
+                <copy file="${base.path}/composer.phar" tofile="${build.path.site}/composer.phar"/>
+            </then>
+        </if>
+        <phingCall target="update"/>
+    </target>
+    
+    <!--
+    // Execute artisan command
+    //-->
+    <target name="artisan">
+        <echo message="artisan ${command}"/>
+        <exec command="${cmd.php} artisan ${command}"
+            dir="${build.path.site}" passthru="true"/>
+    </target>
+    
+    <!--
+    // Build site
+    //-->
+    <target name="update">
+        <copy todir="${build.path.site}" overwrite="true">
+            <fileset dir="${site.path}">
+                <include name="app/**/*"/>
+                <include name="bootstrap/**/*"/>
+                <include name="public/**/*"/>
+                <include name="composer.json"/>
+            </fileset>
+        </copy>
+        <if>
+          <available file="${profiles.path.target}/build.xml"/>
+          <then>
+            <phing dir="${profiles.path.target}" phingFile="build.xml" target="build"
+                inheritAll="true" haltonfailure="true"/>
+          </then>
+        </if>
+        <phingCall target="artisan">
+            <property name="command" value="clear-compiled"/>
+        </phingCall>
+        <phingCall target="artisan">
+            <property name="command" value="optimize"/>
+        </phingCall>
+    </target>
+
+    <!--
+    // Run Unit test
+    //-->
+    <target name="test" depends="build">
+        <exec command="${vendor.path}/bin/phpunit"
+            dir="${build.path.site}" passthru="true"/>
+    </target>
+
+    <!--
+    //  Deploy
+    //-->
+    <target name="deploy" depends="build">
+        <copy todir="${deploy.path.site}" overwrite="true">
+            <fileset dir="${build.path.site}">
+                <include name="app/**/*"/>
+                <include name="bootstrap/**/*"/>
+                <include name="artisan"/>
+                <include name="composer.json"/>
+                <include name="composer.phar"/>
+            </fileset>
+        </copy>
+        <copy todir="${deploy.path.public}" overwrite="true">
+            <fileset dir="${build.path.site}/public">
+                <include name="**/*"/>
+            </fileset>
+        </copy>
+        <if>
+            <istrue value="${deploy.vender}"/>
+            <then>
+                <copy todir="${deploy.path.site}" overwrite="true">
+                    <fileset dir="${build.path.site}">
+                        <include name="vendor/**/*"/>
+                        <include name="composer.lock"/>
+                    </fileset>
+                </copy>
+            </then>
+        </if>
+    
+    </target>
+
+</project>
